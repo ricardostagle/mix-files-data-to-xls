@@ -160,68 +160,51 @@ function run_request($path, $search, $path_r){
     $page = str_replace('||||||||', '', $page);
 
     $research = '';
-    //add_column($xls, $gestor_r);
 
-    /*
-    echo '<table>';
-    $excel->read($path_r);    
-    $x=1;
-    $rows = $excel->sheets[0]['numRows'];
-    for($x=1; $x<= 10; $x++) {
-      echo "\t<tr>\n";
-      $y=1;
-      while($y<=$excel->sheets[0]['numCols']) {
-        $cell = isset($excel->sheets[0]['cells'][$x][$y]) ? $excel->sheets[0]['cells'][$x][$y] : '';
-        echo "\t\t<td>$cell</td>\n";  
-        $y++;
-      }  
-      echo "\t</tr>\n";
-      $x++;
-    }
-      
-    echo '</table><br/>';
-    */
-
-    
-    //$data = array();
     foreach ( $data as $line ) {
       $line = str_replace('||||||||', '', $line);
-      if(strpos($line,$search) !== false && $search != 'empty_search'){
-        $html = str_replace('</th></tr></thead>', '</th></tr></thead>||||', $line);
-        $html = str_replace('</td></tr>', '</td></tr>||||', $html);
-        $trs = explode('||||', $html);
-        $line = str_replace('||||', '', $line);
+      
+      $html = str_replace('</th></tr></thead>', '</th></tr></thead>||||', $line);
+      $html = str_replace('</td></tr>', '</td></tr>||||', $html);
+      $trs = explode('||||', $html);
+      $line = str_replace('||||', '', $line);
         
-        preg_match_all('#<tr[^>]*>(.*?)</tr>#is', $line, $lines);
-        $result = array();
+      preg_match_all('#<tr[^>]*>(.*?)</tr>#is', $line, $lines);
+      $result = array();
 
-        foreach ($lines[1] as $k => $line) {
-          preg_match_all('#<td[^>]*>(.*?)</td>#is', $line, $cell);
-          foreach ($cell[1] as $cell) {
-            $result[$k][] = trim($cell);
-          }
+      foreach ($lines[1] as $k => $line_compare) {
+        preg_match_all('#<td[^>]*>(.*?)</td>#is', $line_compare, $cell);
+        foreach ($cell[1] as $cell) {
+          $result[$k][] = trim($cell);
         }
-        $excel->read($path_r);
-        foreach ($trs as $tr) {
-          foreach ($result as $k => $value) {
-            if(isset($tr) && strpos($tr,'<td>'.$value[0].'</td>') !== false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
-              $rows = $excel->sheets[0]['numRows'];
-              $htmlid = $value[0];
-              for($x=1; $x<=$rows; $x++) {
-                $fileid = $excel->sheets[0]['cells'][$x][1];
-                //echo $htmlid.'/'.$fileid.'<br>'.'<br>'.PHP_EOL;
-                $new_sintesis = $excel->sheets[0]['cells'][$x][7];
-                //echo $new_sintesis.'<br>'.'<br>'.PHP_EOL;
-                $tr_new = str_replace('</td></tr>', '</td><td>'.$new_sintesis.'</td></tr>', $tr);
-                $line = str_replace($tr, $tr_new, $line);
+      }
+      $excel->read($path_r);
+      foreach ($trs as $tr) {
+        foreach ($result as $k => $value) {
+          if(isset($tr) && strpos($tr,'<td>'.$value[0].'</td>') !== false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
+            $rows = $excel->sheets[0]['numRows'];
+            $htmlid = $value[0];
+            for($x=1; $x<=$rows; $x++) {
+              $fileid = $excel->sheets[0]['cells'][$x][1];
+              //echo $htmlid.'/'.$fileid.'<br>'.'<br>'.PHP_EOL;
+              $new_sintesis = $excel->sheets[0]['cells'][$x][7];
+              //echo $new_sintesis.'<br>'.'<br>'.PHP_EOL;
+              $new_tr = str_replace('</td></tr>', '</td><td><span>'.$new_sintesis.'</span></td></tr>', $tr);
+              $new_tr = str_replace('<span>Síntesis</span>', '', $tr);
+
+              $line = str_replace($tr, $new_tr, $line);
+              $tr = str_replace($tr, $new_tr, $tr);  
+              //echo $line.'<br><br>'.PHP_EOL;
+              if(strpos($line,$search) !== false && $search != 'empty_search'){
+                if(isset($tr) && strpos($tr,$search) === false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
+                  $line = str_replace($tr, '', $line);
+                }
               }
             }
           }
-        
-          if(isset($tr) && strpos($tr,$search) === false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
-            $line = str_replace($tr, '', $line);
-          }
         }
+      }
+      if(strpos($line,$search) !== false && $search != 'empty_search'){
         $research += $line;
         echo $line;
       }
