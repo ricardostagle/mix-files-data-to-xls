@@ -7,18 +7,30 @@
  *  
  */
 
-  if (!isset($_FILES["file"])) {
-
+if (!isset($_FILES['file']) && !isset($_FILES['filereport'])) {
+  // Print html if there are no files data from web form submit
 ?>
 <html>
-<meta charset="UTF-8">
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
-  <body>
+
+<head>
+  <title>Generador de nuevo reporte</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html;" charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+  <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+</head>
+  <body style="position: relative; margin:0 auto; width:80%">
+    <h1>Generador de nuevo reporte.</h1>
     <form action="" method="POST" enctype="multipart/form-data">
-      <input type="text" name="searchtext" />
-      <input type="file" name="file" />
-      <input type="file" name="filereport" />
-      <input type="submit"/>
+      <label for="filtrado">Filtrado por texto:</label><br>
+      <input type="text" name="searchtext" value="Escribe tu busqueda..." /><br><br>
+      <label for="files">Selecciona tu archivo html:</label><br>
+      <input type="file" name="file" class="hidden" /><br><br>
+      <label for="files">Selecciona tu archivo xls:</label><br>
+      <input type="file" name="filereport" value="Selecciona tu archivo xls" /><br><br>
+      <input type="submit" value="Enviar"/>
     </form>
    </body>
 </html>
@@ -27,80 +39,79 @@
   exit;
 }
 
-if ($_FILES["file"]["error"] > 0){
-  echo "Error: " . $_FILES["file"]["error"];
-  exit;
-}
-if ($_FILES["filereport"]["error"] > 0){
-  echo "Error: " . $_FILES["filereport"]["error"];
-  exit;
-}
-
-if(isset($_FILES['file']) && isset($_FILES['filereport'])){
-  $errors= array();
-  $file_name = $_FILES['file']['name'];
-  $file_size =$_FILES['file']['size'];
-  $file_tmp =$_FILES['file']['tmp_name'];
-  $file_type=$_FILES['file']['type'];
-
-  $file_name_r = $_FILES['filereport']['name'];
-  $file_size_r =$_FILES['filereport']['size'];
-  $file_tmp_r =$_FILES['filereport']['tmp_name'];
-  $file_type_r=$_FILES['filereport']['type'];
-
-
-  if(isset($_POST['searchtext'])){
-    $search = $_POST['searchtext'];
-  }
-  if($search == ''){
-    $search = 'empty_search';
-  }
-
-  $fileNameCmps = explode(".", $file_name);
-  $fileExtension = strtolower(end($fileNameCmps));
-
-  $fileNameCmpsR = explode(".", $file_name_r);
-  $fileExtensionR = strtolower(end($fileNameCmpsR));
-      
-  $extensions= array("html", "htm", "xls");
-      
-  if(in_array($fileExtension,$extensions)=== false || in_array($fileExtensionR,$extensions)=== false){
-    $errors[]="Extension not allowed, please choose a JPEG or PNG file.";
-  }
-      
-  if($file_size > 100000000 || $file_size_r > 100000000){
-    $errors[]='File size must be excately 100 MB';
-  }
-
-  $path = "uploads/";
-  $path = $path . basename($file_name);
-  $path_r = $path . basename($file_name_r);
-
-  echo $path_r;
-
-  /*if(!empty(basename($file_name)) && basename($file_name) == "uploads/"){
-    unlink($path);
-  }*/
-      
-  if(empty($errors)==true){
-    if(move_uploaded_file($file_tmp, $path) || move_uploaded_file($file_tmp_r, $path_r)) {
-      //echo "<br>El archivo '". $file_name ."' ha sido cargado.<br>".PHP_EOL;
-      if(in_array($fileExtension,$extensions) !== false){
-        //echo "<br>Comienza a ejecutar php...".PHP_EOL;
-        run_request($path, $search, $path_r ); 
-      }else{
-        echo "<br>La extencion del archivo debe de ser html.<br>".PHP_EOL;
-      }
-    } else{
-      echo "<br>Hubo un error cargando el archivo, por favor vuelva a intentar.<br>\n".PHP_EOL;
-    }
-  }else{
-    print_r($errors);
-  }
-}
+// Receive variables from web form 
 
 try{ 
+  if ($_FILES["file"]["error"] > 0){
+    echo "Error: " . $_FILES["file"]["error"];
+    exit;
+  }
+  if ($_FILES["filereport"]["error"] > 0){
+    echo "Error: " . $_FILES["filereport"]["error"];
+    exit;
+  }
 
+  if(isset($_FILES['file']) && isset($_FILES['filereport'])){
+    $errors= array();
+    $file_name = $_FILES['file']['name'];
+    $file_size =$_FILES['file']['size'];
+    $file_tmp =$_FILES['file']['tmp_name'];
+    $file_type=$_FILES['file']['type'];
+
+    $file_name_r = $_FILES['filereport']['name'];
+    $file_size_r =$_FILES['filereport']['size'];
+    $file_tmp_r =$_FILES['filereport']['tmp_name'];
+    $file_type_r=$_FILES['filereport']['type'];
+
+
+    if(isset($_POST['searchtext'])){
+      $search = $_POST['searchtext'];
+    }
+    if($search == ''){
+      $search = 'empty_search';
+    }
+
+    $fileNameCmps = explode(".", $file_name);
+    $fileExtension = strtolower(end($fileNameCmps));
+
+    $fileNameCmpsR = explode(".", $file_name_r);
+    $fileExtensionR = strtolower(end($fileNameCmpsR));
+        
+    $extensions= array("html", "htm", "xls");
+        
+    if(in_array($fileExtension,$extensions)=== false || in_array($fileExtensionR,$extensions)=== false){
+      $errors[]="Extension not allowed, please choose a html, htm or xls file.";
+    }
+        
+    if($file_size > 100000000 || $file_size_r > 100000000){
+      $errors[]='File size must be excately 100 MB';
+    }
+
+    $path0 = "uploads/";
+    $path = $path0 . basename($file_name);
+    $path_r = $path0 . basename($file_name_r);
+
+    /*if(!empty(basename($file_name)) && basename($file_name) == "uploads/"){
+      unlink($path);
+    }*/
+        
+    if(empty($errors)==true){
+      
+      if(move_uploaded_file($file_tmp, $path) && move_uploaded_file($file_tmp_r, $path_r)) {
+        //echo "<br>El archivo '". $file_name ."' ha sido cargado.<br>".PHP_EOL;
+        if(in_array($fileExtension,$extensions) !== false){
+          //echo "<br>Comienza a ejecutar php...".PHP_EOL;
+          run_request($path, $search, $path_r ); 
+        }else{
+          echo "<br>La extencion del archivo debe de ser html.<br>".PHP_EOL;
+        }
+      } else{
+        echo "<br>Hubo un error cargando el archivo, por favor vuelva a intentar.<br>\n".PHP_EOL;
+      }
+    }else{
+      print_r($errors);
+    }
+  }
 
 } catch(Exception $e) {
   echo $e->getMessage();
@@ -108,51 +119,54 @@ try{
 
 
 function run_request($path, $search, $path_r){
-  //error_reporting(E_ERROR | E_PARSE);
-  //error_reporting(0);
+  error_reporting(0);
   include 'reader.php';
   $excel = new Spreadsheet_Excel_Reader();
-  //require_once(dirname(__FILE__)."/xlsxwriter.class.php");
-  //echo "<br>\n".PHP_EOL;
   //echo 'Abriendo archivo ' . $path .".<br>\n".PHP_EOL;
   if (($gestor = fopen($path, "r")) === FALSE) {
     exit;
   }
 
-  if (($gestor = fopen($path, "r")) !== FALSE) {
+  if (($gestor_r = fopen($path_r, "r")) === FALSE) {
+    exit;
+  }
+
+  if (($gestor = fopen($path, "r")) !== FALSE && ($gestor_r = fopen($path_r, "r")) !== FALSE) {
     //echo "Abro archivo...".PHP_EOL;
+
+    //Read html
     $page = file_get_contents($path, FILE_USE_INCLUDE_PATH);
-
     fclose($gestor);
-    $csv = array();
 
-    //Remove all before this string
+    // Removing before and after html tables in html string
     $string_before='<input type="hidden" name="frmTablas" value="frmTablas">';
     $page = strstr($page, $string_before);
     $string_after='<button id="frmTablas:j_idt43" name="frmTablas:j_idt43"';
     $str = explode($string_after, $page);
 
+    // Removing before and after html tables
     $filename = str_replace('uploads/','', $path);
     $fileNameCmps = explode(".", $filename);
     $fileExtension = strtolower(end($fileNameCmps));
     $filename = str_replace('.'.$fileExtension,'', $filename);
     $page = utf8_decode($str[0]);
     
+    //Regex regular expressions to clean the main string
     $page = preg_replace('#<span class="ui-column-title">(.*?)</span>#', '', $page);
     $page = preg_replace("/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i",'<$1$2>', $page);
     $page = preg_replace( "/\r|\n/", "", $page);
     $page = preg_replace('#</?a[^>]*>#is', '',$page);
-   
+
+    //Remove and replace some strings
     $thead_empty = '<thead><tr><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead>';
     $thead = utf8_decode('<thead><tr><th><span>No</span></th><th><span>No. Expediente</span></th><th><span>Parte Actora</span></th><th><span>Parte Demandada</span></th><th><span>Parte Notificada</span></th><th><span>Fecha de la actuación</span></th><th><span>Síntesis</span></th><th><span>Síntesis</span></th></tr></thead>');
     $page = str_replace($thead_empty, $thead, $page);
     $page = str_replace('<div>','', $page);
     $page = str_replace('</div>','', $page);
     $page = str_replace('<input><img>','', $page);
+    $page = str_replace('....Seguir leyendo', '', $page);
     $page = str_replace('<!-- Aquí comienza el botón de exportar datos de la búsqueda general-->','', $page);
     $page = str_replace('<!-- Aqu&iacute; comienza el bot&oacute;n de exportar datos de la b&uacute;squeda general-->','', $page);
-    //echo $page;
-    //exit;
     $page = str_replace('  ','', $page);
     $page = str_replace('</label>', '</label><br>', $page);
     $page = str_replace('</table>', '</table><br><br>||||||||', $page);
@@ -161,50 +175,49 @@ function run_request($path, $search, $path_r){
 
     $research = '';
 
+    //Read xls file
+    $excel->read($path_r);
+    $toObject = new stdClass;
+    $rows = $excel->sheets[0]['numRows'];
+    for($x=1; $x<=$rows; $x++) {
+      $fileid = $excel->sheets[0]['cells'][$x][1];
+      $new_sintesis = $excel->sheets[0]['cells'][$x][7];
+      $toObject->$fileid = array('sintesis'=>$new_sintesis);
+    }
+    $obj_array = (array)$toObject;
+
+    //Parser string by tables
     foreach ( $data as $line ) {
+      //Parser string by trs
       $line = str_replace('||||||||', '', $line);
-      
-      $html = str_replace('</th></tr></thead>', '</th></tr></thead>||||', $line);
-      $html = str_replace('</td></tr>', '</td></tr>||||', $html);
-      $trs = explode('||||', $html);
+      $line = str_replace('</th></tr></thead>', '</th></tr></thead>||||', $line);
+      $line = str_replace('</td></tr>', '</td><td><span>R</span></td></tr>||||', $line);
+      $trs = explode('||||', $line);
       $line = str_replace('||||', '', $line);
-        
-      preg_match_all('#<tr[^>]*>(.*?)</tr>#is', $line, $lines);
-      $result = array();
 
-      foreach ($lines[1] as $k => $line_compare) {
-        preg_match_all('#<td[^>]*>(.*?)</td>#is', $line_compare, $cell);
-        foreach ($cell[1] as $cell) {
-          $result[$k][] = trim($cell);
-        }
-      }
-      $excel->read($path_r);
       foreach ($trs as $tr) {
-        foreach ($result as $k => $value) {
-          if(isset($tr) && strpos($tr,'<td>'.$value[0].'</td>') !== false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
-            $rows = $excel->sheets[0]['numRows'];
-            $htmlid = $value[0];
-            for($x=1; $x<=$rows; $x++) {
-              $fileid = $excel->sheets[0]['cells'][$x][1];
-              //echo $htmlid.'/'.$fileid.'<br>'.'<br>'.PHP_EOL;
-              $new_sintesis = $excel->sheets[0]['cells'][$x][7];
-              //echo $new_sintesis.'<br>'.'<br>'.PHP_EOL;
-              $new_tr = str_replace('</td></tr>', '</td><td><span>'.$new_sintesis.'</span></td></tr>', $tr);
-              $new_tr = str_replace('<span>Síntesis</span>', '', $tr);
-
-              $line = str_replace($tr, $new_tr, $line);
-              $tr = str_replace($tr, $new_tr, $tr);  
-              //echo $line.'<br><br>'.PHP_EOL;
-              if(strpos($line,$search) !== false && $search != 'empty_search'){
-                if(isset($tr) && strpos($tr,$search) === false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
-                  $line = str_replace($tr, '', $line);
-                }
-              }
-            }
+        $tr_new = '';
+        //Find every row by first column id, get data from the object and create new row
+        if (preg_match('#<span[^<>]*>([\d,]+).*?</span>#', $tr, $matches)) {
+          $sintesis = $toObject->{$matches[1]}['sintesis'];
+          $tr_new= '<span>'.$sintesis.'</span>';
+          if(strpos($tr,'<span>'.$matches[1].'</span>') !== false && startsWith($tr, '<label>') == false){
+            $tr_new = str_replace('<span>R</span>', '<span>'.$sintesis.'</span>', $tr);
+            $line = str_replace($tr, $tr_new, $line);
           }
+          $tr = $tr_new;
+        }
+        if(isset($tr) && strpos(strtoupper ($tr),strtoupper ($search)) === false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
+          //Remove not wanted row when filter text
+          $line = str_replace($tr, '', $line);
+        }
+        if(strpos($tr,$search) !== false && $search != 'empty_search'){
+          //echo for deg research
+          //echo $tr.'<br>';
         }
       }
       if(strpos($line,$search) !== false && $search != 'empty_search'){
+        // Create new string for send info to xls 
         $research += $line;
         echo $line;
       }
@@ -214,10 +227,10 @@ function run_request($path, $search, $path_r){
       }
     }
     
+    //Sending new string to export xls file
     $page = $research;
-    //csv_to_excel($page, $filename, $search);
+    csv_to_excel($page, $filename, $search);
     //echo "Actualizacion terminada.<br>\n".PHP_EOL;
-    
   }
 }
 
@@ -237,23 +250,10 @@ function csv_to_excel($data_excel, $filename){
 }
 
 function startsWith($haystack, $needle) {
-    return substr_compare($haystack, $needle, 0, strlen($needle)) === 0;
+  return substr_compare($haystack, $needle, 0, strlen($needle)) === 0;
 }
 function endsWith($haystack, $needle) {
-    return substr_compare($haystack, $needle, -strlen($needle)) === 0;
-}
-
-function add_column($tr, $gestor_r){
-  while (($datos = fgetcsv($gestor_r, 100, ",")) !== FALSE) {
-    $number = count($datos);
-    for ($c=0; $c < $number; $c++) {
-      echo $datos[0] .'<br>'.PHP_EOL;
-      if($datos[0] == ''){
-        $html = str_replace('</td></tr>', '</td><td>'.$datos[3].'</td></tr>', $table );
-        return $html;
-      }
-    }
-  }
+  return substr_compare($haystack, $needle, -strlen($needle)) === 0;
 }
 
 ?>
