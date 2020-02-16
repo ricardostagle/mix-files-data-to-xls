@@ -121,7 +121,7 @@ try{
 
 
 function run_request($path, $search, $path_r){
-  error_reporting(0);
+  //error_reporting(0);
   include 'reader.php';
   $excel = new Spreadsheet_Excel_Reader();
   //echo 'Abriendo archivo ' . $path .".<br>\n".PHP_EOL;
