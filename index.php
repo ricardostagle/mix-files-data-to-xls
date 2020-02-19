@@ -27,11 +27,11 @@ if (!isset($_FILES['file']) && !isset($_FILES['filereport'])) {
     <h1>Generador de nuevo reporte.</h1>
     <form action="" method="POST" enctype="multipart/form-data">
       <label for="filtrado">Filtrado por texto:</label><br>
-      <input type="text" name="searchtext" value="Escribe tu busqueda..." /><br><br>
+      <input type="text" name="searchtext"/><br><br>
       <label for="files">Selecciona tu archivo html:</label><br>
-      <input type="file" name="file" class="hidden" /><br><br>
+      <input type="file" name="file" /><br><br>
       <label for="files">Selecciona tu archivo xls:</label><br>
-      <input type="file" name="filereport" value="Selecciona tu archivo xls" /><br><br>
+      <input type="file" name="filereport"/><br><br>
       <input type="submit" value="Enviar"/>
     </form>
    </body>
@@ -197,6 +197,9 @@ function run_request($path, $search, $path_r){
       $trs = explode('||||', $line);
       $line = str_replace('||||', '', $line);
 
+      $tr_upper = '';
+      $search_upper = strtoupper($search);
+      $filltered_rows = '';
       foreach ($trs as $tr) {
         $tr_new = '';
         //Find every row by first column id, get data from the object and create new row
@@ -204,40 +207,41 @@ function run_request($path, $search, $path_r){
           $sintesis = $toObject->{$matches[1]}['sintesis'];
           $tr_new= '<span>'.$sintesis.'</span>';
           if(strpos($tr,'<span>'.$matches[1].'</span>') !== false && startsWith($tr, '<label>') == false){
-            $tr_new = str_replace('<span>R</span>', '<span>'.$sintesis.'</span>', $tr);
+            $tr_new = str_replace('<span>R</span>', $tr_new, $tr);
+            $tr = str_replace('</span><span>', '</span></td><td><span>', $tr);
+            $tr_new = str_replace('</span><span>', '</span></td><td><span>', $tr_new);
             $line = str_replace($tr, $tr_new, $line);
+            $tr_upper = strtoupper($tr_new);
+            if(strpos($tr_upper,$search_upper) === false 
+              && $search != 'empty_search'
+              && substr($tr, -10) == '</td></tr>' 
+              && startsWith($tr, '<label>') == false){
+                $line = str_replace($tr_new, "", $line);
+            }else{
+              $filltered_rows .= $tr_new;
+            }
           }
-          $tr = $tr_new;
-        }
-        if(isset($tr) && strpos(strtoupper ($tr),strtoupper ($search)) === false && substr($tr, -10) == '</td></tr>' && startsWith($tr, '<label>') == false){
-          //Remove not wanted row when filter text
-          $line = str_replace($tr, '', $line);
-        }
-        if(strpos($tr,$search) !== false && $search != 'empty_search'){
-          //echo for deg research
-          //echo $tr.'<br>';
         }
       }
-      if(strpos($line,$search) !== false && $search != 'empty_search'){
-        // Create new string for send info to xls 
-        $research += $line;
-        echo $line;
+      if((strpos(strtoupper($line),$search_upper) !== false
+        && $search != 'empty_search')
+      ){
+        $research .= $line;
       }
       if($search == 'empty_search'){
-        $research += $line;
-        echo $line;
+        $research .= $line;
       }
     }
     
     //Sending new string to export xls file
-    $page = $research;
-    csv_to_excel($page, $filename, $search);
+    csv_to_excel($research, $filename, $search);
     //echo "Actualizacion terminada.<br>\n".PHP_EOL;
   }
 }
 
 function csv_to_excel($data_excel, $filename){
   
+  //print_r($data_excel).'<br>'.'<br>';
   header ("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
   header ("Last-Modified: " . gmdate("D,d M YH:i:s") . " GMT");
   header ("Cache-Control: no-cache, must-revalidate");
