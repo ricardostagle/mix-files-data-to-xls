@@ -11,7 +11,6 @@ if (!isset($_FILES['file']) && !isset($_FILES['filereport'])) {
   // Print html if there are no files data from web form submit
 ?>
 <html>
-
 <head>
   <title>Generador de nuevo reporte</title>
   <meta charset="UTF-8">
@@ -171,7 +170,7 @@ function run_request($path, $search, $path_r){
     $page = str_replace('<!-- Aqu&iacute; comienza el bot&oacute;n de exportar datos de la b&uacute;squeda general-->','', $page);
     $page = str_replace('  ','', $page);
     $page = str_replace('</label>', '</label><br>', $page);
-    $page = str_replace('</table>', '</table>||||||||', $page);
+    $page = str_replace('</table>', '</table><br><br>||||||||', $page);
     $data = explode('||||||||', $page);
     $page = str_replace('||||||||', '', $page);
 
@@ -184,6 +183,8 @@ function run_request($path, $search, $path_r){
     for($x=1; $x<=$rows; $x++) {
       $fileid = $excel->sheets[0]['cells'][$x][1];
       $new_sintesis = $excel->sheets[0]['cells'][$x][7];
+
+      //Create a new id for the object coming from the excel
       $new_id = $excel->sheets[0]['cells'][$x][2];
       $new_id = $new_id.$excel->sheets[0]['cells'][$x][3];
       $new_id = $new_id.$excel->sheets[0]['cells'][$x][4];
@@ -197,9 +198,9 @@ function run_request($path, $search, $path_r){
       $new_id = str_replace('.', '', $new_id);
       $toObject->$new_id = array('sintesis'=>$new_sintesis);
     }
-    //print_r($toObject);
+    //Object to array if needed
     $obj_array = (array)$toObject;
-    $i = 0;
+    
     //Parser string by tables
     foreach ( $data as $line ) {
       //Parser string by trs
@@ -212,15 +213,17 @@ function run_request($path, $search, $path_r){
       $tr_upper = '';
       $search_upper = strtoupper($search);
       $filltered_rows = '';
-      
+
+      $i = 0;
       foreach ($trs as $tr) {
         $sintesis = '';
         $tr = str_replace('</span><span>', '</span></td><td><span>', $tr);
-        if($tr=="<span>R</span>"){
-          $tr = str_replace($tr, "", $tr);
+        if($tr == (string) "<span>R</span>"){
+          $line = str_replace($tr, "", $line);
         }
 
         //Find every row by first column id, get data from the object and create new row
+        //Create a new id for the object coming from the html
         if (preg_match_all("/<span>.*?<\/span>/is", $tr, $matches)) {
           $matches0 = isset($matches[0][0]) ? $matches[0][0] : null;
           $matches1 = isset($matches[0][1]) ? $matches[0][1] : null;
@@ -232,7 +235,7 @@ function run_request($path, $search, $path_r){
           $string_compare = $matches1.$matches2.$matches3.$matches4.$matches5;
 
           if($matches0 != "<span>No</span>" || $string_compare != "<span>R</span>"){
-
+            $i++;
             $string_compare = strtoupper(preg_replace("#</?span[^>]*>#is", "", $string_compare));
             $string_compare = trim(preg_replace('/\s+/', "", $string_compare));
             $string_compare = str_replace(",", "", $string_compare);
@@ -244,13 +247,12 @@ function run_request($path, $search, $path_r){
             if(isset($toObject->{$string_compare})){
               $sintesis = $toObject->{$string_compare}['sintesis'];
             }
-            //$sintesis = $string_compare;
           }
           if(startsWith($tr, '<label>') == false
               //&& strpos((string) $sintesis, (string) $matches6) !== false
               //if( (int)$matches0 > 4520 && (int)$matches0 < 4557){
             ){
-            //echo 'ACCESS '."<br><br>\n".PHP_EOL;
+
             $tr_format = str_replace("<span>R</span>", "<span>".$sintesis."</span>", $tr);
 
             if(strpos($line,$tr_format) === false  && $matches0 !== (string) "<span>R</span>"){
@@ -270,18 +272,16 @@ function run_request($path, $search, $path_r){
           }
         }
       }
-      if((strpos(strtoupper($line),$search_upper) !== false && $search != 'empty_search')
+      if($i==0){
+        $line = '';
+      }
+      if((strpos(strtoupper($line),$search_upper) !== false 
+        && $search != 'empty_search')
         || $search == 'empty_search'
       ){
         $research .= $line;
       }
-      if($i==500){
-        //exit();
-      }
-      $i++;
     }
-    //echo $research;
-    //exit();
     //Sending new string to export xls file
     csv_to_excel($research, $filename, $search);
     //echo "Actualizacion terminada.<br>\n".PHP_EOL;

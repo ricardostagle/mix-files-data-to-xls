@@ -1,4 +1,4 @@
-# Export xls mixing data form a html table and a xls with PHP.
+# Export xls mixing data from a html table and a xls with PHP.
 
 Simple code to convert html file to csv reading te html code , getting table values and moving them to an array for finally export the csv file.
 
