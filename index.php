@@ -171,7 +171,7 @@ function run_request($path, $search, $path_r){
     $page = str_replace('<!-- Aqu&iacute; comienza el bot&oacute;n de exportar datos de la b&uacute;squeda general-->','', $page);
     $page = str_replace('  ','', $page);
     $page = str_replace('</label>', '</label><br>', $page);
-    $page = str_replace('</table>', '</table><br><br>||||||||', $page);
+    $page = str_replace('</table>', '</table>||||||||', $page);
     $data = explode('||||||||', $page);
     $page = str_replace('||||||||', '', $page);
 
@@ -184,10 +184,22 @@ function run_request($path, $search, $path_r){
     for($x=1; $x<=$rows; $x++) {
       $fileid = $excel->sheets[0]['cells'][$x][1];
       $new_sintesis = $excel->sheets[0]['cells'][$x][7];
-      $toObject->$fileid = array('sintesis'=>$new_sintesis);
+      $new_id = $excel->sheets[0]['cells'][$x][2];
+      $new_id = $new_id.$excel->sheets[0]['cells'][$x][3];
+      $new_id = $new_id.$excel->sheets[0]['cells'][$x][4];
+      $new_id = $new_id.$excel->sheets[0]['cells'][$x][5];
+      $new_id = strtoupper($new_id.$excel->sheets[0]['cells'][$x][6]);
+      $new_id = trim(preg_replace('/\s+/', '', $new_id));
+      $new_id = str_replace(',', '', $new_id);
+      $new_id = str_replace('"', '', $new_id);
+      $new_id = str_replace('/', '', $new_id);
+      $new_id = str_replace('-', '', $new_id);
+      $new_id = str_replace('.', '', $new_id);
+      $toObject->$new_id = array('sintesis'=>$new_sintesis);
     }
+    //print_r($toObject);
     $obj_array = (array)$toObject;
-
+    $i = 0;
     //Parser string by tables
     foreach ( $data as $line ) {
       //Parser string by trs
@@ -200,39 +212,76 @@ function run_request($path, $search, $path_r){
       $tr_upper = '';
       $search_upper = strtoupper($search);
       $filltered_rows = '';
+      
       foreach ($trs as $tr) {
-        $tr_new = '';
+        $sintesis = '';
+        $tr = str_replace('</span><span>', '</span></td><td><span>', $tr);
+        if($tr=="<span>R</span>"){
+          $tr = str_replace($tr, "", $tr);
+        }
+
         //Find every row by first column id, get data from the object and create new row
-        if (preg_match('#<span[^<>]*>([\d,]+).*?</span>#', $tr, $matches)) {
-          $sintesis = $toObject->{$matches[1]}['sintesis'];
-          $tr_new= '<span>'.$sintesis.'</span>';
-          if(strpos($tr,'<span>'.$matches[1].'</span>') !== false && startsWith($tr, '<label>') == false){
-            $tr_new = str_replace('<span>R</span>', $tr_new, $tr);
-            $tr = str_replace('</span><span>', '</span></td><td><span>', $tr);
-            $tr_new = str_replace('</span><span>', '</span></td><td><span>', $tr_new);
-            $line = str_replace($tr, $tr_new, $line);
-            $tr_upper = strtoupper($tr_new);
+        if (preg_match_all("/<span>.*?<\/span>/is", $tr, $matches)) {
+          $matches0 = isset($matches[0][0]) ? $matches[0][0] : null;
+          $matches1 = isset($matches[0][1]) ? $matches[0][1] : null;
+          $matches2 = isset($matches[0][2]) ? $matches[0][2] : null;
+          $matches3 = isset($matches[0][3]) ? $matches[0][3] : null;
+          $matches4 = isset($matches[0][4]) ? $matches[0][4] : null;
+          $matches5 = isset($matches[0][5]) ? $matches[0][5] : null;
+          $matches6 = isset($matches[0][6]) ? $matches[0][6] : null;
+          $string_compare = $matches1.$matches2.$matches3.$matches4.$matches5;
+
+          if($matches0 != "<span>No</span>" || $string_compare != "<span>R</span>"){
+
+            $string_compare = strtoupper(preg_replace("#</?span[^>]*>#is", "", $string_compare));
+            $string_compare = trim(preg_replace('/\s+/', "", $string_compare));
+            $string_compare = str_replace(",", "", $string_compare);
+            $string_compare = str_replace('"', "", $string_compare);
+            $string_compare = str_replace("/", "", $string_compare);
+            $string_compare = str_replace("-", "", $string_compare);
+            $string_compare = str_replace(".", "", $string_compare);
+
+            if(isset($toObject->{$string_compare})){
+              $sintesis = $toObject->{$string_compare}['sintesis'];
+            }
+            //$sintesis = $string_compare;
+          }
+          if(startsWith($tr, '<label>') == false
+              //&& strpos((string) $sintesis, (string) $matches6) !== false
+              //if( (int)$matches0 > 4520 && (int)$matches0 < 4557){
+            ){
+            //echo 'ACCESS '."<br><br>\n".PHP_EOL;
+            $tr_format = str_replace("<span>R</span>", "<span>".$sintesis."</span>", $tr);
+
+            if(strpos($line,$tr_format) === false  && $matches0 !== (string) "<span>R</span>"){
+              if(strpos($line,"<span>4556</span>") !== false){
+                //echo $matches0.' //// '.$tr."<br>\n".PHP_EOL;
+              }
+              $line = str_replace($tr, $tr_format, $line);
+            }
+
+            $tr_upper = strtoupper($tr_format);
             if(strpos($tr_upper,$search_upper) === false 
-              && $search != 'empty_search'
-              && substr($tr, -10) == '</td></tr>' 
-              && startsWith($tr, '<label>') == false){
-                $line = str_replace($tr_new, "", $line);
-            }else{
-              $filltered_rows .= $tr_new;
+             && $search != 'empty_search'
+             && substr($tr, -10) == '</td></tr>' 
+             && startsWith($tr, '<label>') == false){
+              $line = str_replace($tr_format, "", $line);
             }
           }
         }
       }
-      if((strpos(strtoupper($line),$search_upper) !== false
-        && $search != 'empty_search')
+      if((strpos(strtoupper($line),$search_upper) !== false && $search != 'empty_search')
+        || $search == 'empty_search'
       ){
         $research .= $line;
       }
-      if($search == 'empty_search'){
-        $research .= $line;
+      if($i==500){
+        //exit();
       }
+      $i++;
     }
-    
+    //echo $research;
+    //exit();
     //Sending new string to export xls file
     csv_to_excel($research, $filename, $search);
     //echo "Actualizacion terminada.<br>\n".PHP_EOL;
@@ -240,16 +289,21 @@ function run_request($path, $search, $path_r){
 }
 
 function csv_to_excel($data_excel, $filename){
-  
-  //print_r($data_excel).'<br>'.'<br>';
-  header ("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+
+  //header ("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
   header ("Last-Modified: " . gmdate("D,d M YH:i:s") . " GMT");
-  header ("Cache-Control: no-cache, must-revalidate");
-  header ("Pragma: no-cache");
+  header ("Pragma: public");
+  header ("Expires: 0");
+  
+  header ("Cache-Control: no-cache, must-revalidate, post-check=0, pre-check=0");
+  header ("Cache-Control: private",false);
+  //header ("Pragma: no-cache");
+
+  header ("Content-Type: application/force-download");
   header ("Content-Disposition: attachment; filename=\"" . basename($filename) . ".xls\"" );
   header ("Content-Description: PHP/INTERBASE Generated Data" );
-  header("Content-Type: application/xls");    
-  header("Expires: 0");
+  header ("Content-Type: application/xls; charset=utf-8");
+  header ("Content-Transfer-Encoding: UTF-8");
   
   echo $data_excel;
   exit;
